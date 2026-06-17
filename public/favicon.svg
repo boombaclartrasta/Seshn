@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SESHN favicon">
+  <rect width="512" height="512" rx="72" fill="#111111"/>
+  <circle cx="256" cy="256" r="146" fill="none" stroke="#1b1b1b" stroke-width="44"/>
+  <circle cx="256" cy="256" r="146" fill="none" stroke="#f2f2f2" stroke-width="44" stroke-linecap="round" stroke-dasharray="560 360" transform="rotate(-52 256 256)"/>
+  <circle cx="256" cy="256" r="11" fill="#f2f2f2"/>
+  <path d="M256 256 V136" stroke="#f2f2f2" stroke-width="16" stroke-linecap="round"/>
+  <path d="M256 256 L330 315" stroke="#f2f2f2" stroke-width="16" stroke-linecap="round"/>
+</svg>

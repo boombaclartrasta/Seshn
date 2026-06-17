@@ -24,3 +24,57 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes reveal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(56px) scale(0.965);
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes reveal-exit-up {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-56px) scale(0.965);
+    filter: blur(4px);
+  }
+}
+
+@keyframes reveal-exit-down {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(56px) scale(0.965);
+    filter: blur(4px);
+  }
+}
+
+.animate-reveal-enter {
+  animation: reveal-enter 1600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-reveal-exit-up {
+  animation: reveal-exit-up 1600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-reveal-exit-down {
+  animation: reveal-exit-down 1600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}

@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# SESHN
+
+SESHN is a study tracking and sharing app. The root route (`/`) is the
+completed waitlist page. The product prototype now starts at `/dashboard`.
 
 ## Getting Started
 
 First, run the development server:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm.cmd run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+- Waitlist: [http://localhost:3000](http://localhost:3000)
+- App prototype: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Current App Surface
 
-## Learn More
+- `/signin` stores a prototype local profile in browser storage.
+- `/dashboard` shows study totals, streak, focus average, recent sessions, and a share-photo link.
+- `/sessions/new` lets you set targets, record a study session, and enter details only after completion.
+- `/sessions/[id]` shows the saved session detail.
+- `/share/[id]` lets you take or upload a photo, apply a share design overlay, and save the composed image.
 
-To learn more about Next.js, take a look at the following resources:
+The app currently persists data to `localStorage` so you can develop the UX
+without committing to auth or database choices yet.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Focus scoring is optional and uses browser-accessible signals. Device
+orientation is used when the browser grants permission; otherwise, page
+visibility can act as a fallback proxy for phone-on/app-active time. Most phone
+browsers require HTTPS for motion sensors, so focus tracking may stay disabled
+when testing over a local `http://192.168...` address.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Test On A Phone
 
-## Deploy on Vercel
+Run Next on your network:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm.cmd run dev -- -H 0.0.0.0 -p 3000
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Find your computer's IPv4 address:
+
+```powershell
+ipconfig
+```
+
+On your phone, connect to the same Wi-Fi and open:
+
+```text
+http://YOUR_IPV4_ADDRESS:3000/dashboard
+```
+
+## Test On Android Emulator
+
+After starting the dev server, open Chrome in the emulator:
+
+```text
+http://10.0.2.2:3000/dashboard
+```
+
+If that does not load, use your computer's IPv4 address instead.
+
+## Next Engineering Steps
+
+1. Replace local profile storage with real auth.
+2. Replace `localStorage` session persistence with a database.
+3. Add route handlers or server actions for session mutations.
+4. Generate PNG app icons for the manifest.
+5. Add tests around the session creation and dashboard stats flow.

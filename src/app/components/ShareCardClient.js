@@ -101,6 +101,13 @@ const DESIGNS = [
     position: "frame",
     tint: "rgba(255, 255, 255, 0.5)",
   },
+  {
+    id: "message-bubbles",
+    name: "Message bubbles",
+    description: "blue iMessage style",
+    position: "messages",
+    tint: "#0a84ff",
+  },
 ]
 
 export default function ShareCardClient({ id }) {
@@ -316,6 +323,24 @@ function DesignThumbnail({ design }) {
   const isLight = design.light
   const panelClass = getThumbnailPanelClass(design.position)
 
+  if (design.position === "messages") {
+    return (
+      <span className="relative block aspect-[9/16] overflow-hidden rounded-md bg-[linear-gradient(145deg,rgba(255,255,255,0.22),rgba(255,255,255,0.04))]">
+        <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_30%)]" />
+        <span className="absolute right-2 top-[34%] grid w-[82%] gap-2">
+          <span className="relative ml-auto block h-8 w-full rounded-[999px] bg-[#0a84ff]">
+            <span className="absolute -right-1 bottom-0 h-3 w-4 rounded-br-full bg-[#0a84ff]" />
+            <span className="absolute left-3 top-1/2 h-1.5 w-14 -translate-y-1/2 rounded-full bg-white/82" />
+          </span>
+          <span className="relative ml-auto block h-8 w-[72%] rounded-[999px] bg-[#0a84ff]">
+            <span className="absolute -right-1 bottom-0 h-3 w-4 rounded-br-full bg-[#0a84ff]" />
+            <span className="absolute left-3 top-1/2 h-1.5 w-10 -translate-y-1/2 rounded-full bg-white/82" />
+          </span>
+        </span>
+      </span>
+    )
+  }
+
   return (
     <span className="relative block aspect-[9/16] overflow-hidden rounded-md bg-[linear-gradient(145deg,rgba(255,255,255,0.22),rgba(255,255,255,0.04))]">
       <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_30%)]" />
@@ -497,6 +522,15 @@ function drawDesign(context, design, session, streak, width, height) {
     })
   }
 
+  if (design.position === "messages") {
+    drawMessagesLockup(context, session, {
+      x: 64,
+      y: height - 650,
+      width: width - 128,
+      tint: design.tint,
+    })
+  }
+
   context.restore()
 }
 
@@ -643,6 +677,162 @@ function drawFrameLockup(context, session, metrics, options) {
   })
 }
 
+function drawMessagesLockup(context, session, options) {
+  const { x, y, width, tint } = options
+  const bubbleRight = x + width - 8
+  const maxBubbleWidth = width * 0.84
+  const minBubbleWidth = width * 0.42
+  const tailWidth = 46
+  const paddingX = 48
+  const paddingY = 36
+  const textMaxWidth = maxBubbleWidth - tailWidth - paddingX * 2
+
+  context.save()
+  context.textAlign = "left"
+  context.fillStyle = "#ffffff"
+  context.font = serifFont(56)
+
+  const titleLines = getWrappedLines(context, session.title, textMaxWidth, 3)
+  const titleBubble = getMessageBubbleGeometry(
+    context,
+    titleLines,
+    bubbleRight,
+    y,
+    {
+      lineHeight: 64,
+      maxBubbleWidth,
+      minBubbleWidth,
+      paddingX,
+      paddingY,
+      tailWidth,
+    }
+  )
+
+  context.shadowColor = "rgba(0,0,0,0.26)"
+  context.shadowBlur = 24
+  context.shadowOffsetY = 12
+  context.fillStyle = tint
+  drawRightMessageBubble(
+    context,
+    titleBubble.x,
+    titleBubble.y,
+    titleBubble.width,
+    titleBubble.height,
+    52
+  )
+  context.fill()
+
+  context.shadowColor = "transparent"
+  context.fillStyle = "#ffffff"
+  context.font = serifFont(56)
+  drawTextLines(
+    context,
+    titleLines,
+    titleBubble.x + paddingX,
+    titleBubble.y + paddingY + 48,
+    64
+  )
+
+  const detailLines = [
+    `${formatDuration(session.durationSeconds)} session`,
+    `${session.focus ?? 0}% focus rating`,
+  ]
+  context.font = serifFont(48)
+  const detailBubble = getMessageBubbleGeometry(
+    context,
+    detailLines,
+    bubbleRight,
+    titleBubble.y + titleBubble.height + 30,
+    {
+      lineHeight: 56,
+      maxBubbleWidth,
+      minBubbleWidth,
+      paddingX,
+      paddingY,
+      tailWidth,
+    }
+  )
+
+  context.shadowColor = "rgba(0,0,0,0.26)"
+  context.shadowBlur = 24
+  context.shadowOffsetY = 12
+  context.fillStyle = tint
+  drawRightMessageBubble(
+    context,
+    detailBubble.x,
+    detailBubble.y,
+    detailBubble.width,
+    detailBubble.height,
+    52
+  )
+  context.fill()
+
+  context.shadowColor = "transparent"
+  context.fillStyle = "#ffffff"
+  context.font = serifFont(48)
+  drawTextLines(
+    context,
+    detailLines,
+    detailBubble.x + paddingX,
+    detailBubble.y + paddingY + 42,
+    56
+  )
+
+  context.restore()
+}
+
+function getMessageBubbleGeometry(context, lines, right, y, options) {
+  const {
+    lineHeight,
+    maxBubbleWidth,
+    minBubbleWidth,
+    paddingX,
+    paddingY,
+    tailWidth,
+  } = options
+  const textWidth = Math.max(
+    1,
+    ...lines.map((line) => context.measureText(line).width)
+  )
+  const width = Math.min(
+    maxBubbleWidth,
+    Math.max(minBubbleWidth, textWidth + paddingX * 2 + tailWidth)
+  )
+
+  return {
+    x: right - width,
+    y,
+    width,
+    height: lines.length * lineHeight + paddingY * 2,
+  }
+}
+
+function drawRightMessageBubble(context, x, y, width, height, radius) {
+  const tailWidth = 46
+  const bodyRight = x + width - tailWidth
+  const bottom = y + height
+
+  context.beginPath()
+  context.moveTo(x + radius, y)
+  context.lineTo(bodyRight - radius, y)
+  context.quadraticCurveTo(bodyRight, y, bodyRight, y + radius)
+  context.lineTo(bodyRight, bottom - radius)
+  context.quadraticCurveTo(bodyRight, bottom, bodyRight - radius, bottom)
+  context.lineTo(x + radius, bottom)
+  context.quadraticCurveTo(x, bottom, x, bottom - radius)
+  context.lineTo(x, y + radius)
+  context.quadraticCurveTo(x, y, x + radius, y)
+  context.closePath()
+  context.fill()
+
+  context.beginPath()
+  context.moveTo(bodyRight - 18, bottom - 52)
+  context.quadraticCurveTo(bodyRight + 12, bottom - 22, x + width, bottom - 6)
+  context.quadraticCurveTo(bodyRight + 6, bottom + 6, bodyRight - 58, bottom - 6)
+  context.quadraticCurveTo(bodyRight - 24, bottom - 16, bodyRight - 18, bottom - 52)
+  context.closePath()
+}
+
 function serifFont(size) {
   return `400 ${size}px ${SHARE_FONT}`
 }
@@ -665,6 +855,15 @@ function fillSingleLine(context, text, x, y, maxWidth) {
 }
 
 function wrapText(context, text, x, y, maxWidth, lineHeight, maxLines, align = "left") {
+  const visibleLines = getWrappedLines(context, text, maxWidth, maxLines)
+
+  visibleLines.forEach((line, index) => {
+    const textX = align === "center" ? x + maxWidth / 2 : x
+    context.fillText(line, textX, y + index * lineHeight)
+  })
+}
+
+function getWrappedLines(context, text, maxWidth, maxLines) {
   const words = String(text ?? "").split(/\s+/).filter(Boolean)
   const lines = []
   let currentLine = ""
@@ -680,7 +879,10 @@ function wrapText(context, text, x, y, maxWidth, lineHeight, maxLines, align = "
     if (currentLine) {
       lines.push(currentLine)
     }
-    currentLine = word
+    currentLine =
+      context.measureText(word).width > maxWidth
+        ? trimTextToWidth(context, word, maxWidth)
+        : word
   })
 
   if (currentLine) {
@@ -691,12 +893,29 @@ function wrapText(context, text, x, y, maxWidth, lineHeight, maxLines, align = "
 
   if (lines.length > maxLines) {
     const lastIndex = visibleLines.length - 1
-    visibleLines[lastIndex] = `${visibleLines[lastIndex].replace(/\.*$/, "")}...`
+    visibleLines[lastIndex] = trimTextToWidth(
+      context,
+      visibleLines[lastIndex].replace(/\.*$/, ""),
+      maxWidth
+    )
   }
 
-  visibleLines.forEach((line, index) => {
-    const textX = align === "center" ? x + maxWidth / 2 : x
-    context.fillText(line, textX, y + index * lineHeight)
+  return visibleLines.length > 0 ? visibleLines : [""]
+}
+
+function trimTextToWidth(context, text, maxWidth) {
+  let nextText = String(text ?? "")
+
+  while (nextText.length > 0 && context.measureText(`${nextText}...`).width > maxWidth) {
+    nextText = nextText.slice(0, -1)
+  }
+
+  return `${nextText}...`
+}
+
+function drawTextLines(context, lines, x, y, lineHeight) {
+  lines.forEach((line, index) => {
+    context.fillText(line, x, y + index * lineHeight)
   })
 }
 

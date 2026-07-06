@@ -2,7 +2,14 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-import { formatDuration, getSession } from "@/lib/seshnStore"
+import {
+  calculateStats,
+  formatDuration,
+  getSession,
+  getSessions,
+} from "@/lib/seshnStore"
+
+const SHARE_FONT = '"DM Serif Display", Georgia, serif'
 
 const DESIGNS = [
   {
@@ -101,6 +108,7 @@ export default function ShareCardClient({ id }) {
   const imageRef = useRef(null)
   const [session, setSession] = useState(null)
   const [loaded, setLoaded] = useState(false)
+  const [streak, setStreak] = useState(0)
   const [imageUrl, setImageUrl] = useState("")
   const [selectedDesign, setSelectedDesign] = useState(DESIGNS[0])
   const [panelExpanded, setPanelExpanded] = useState(false)
@@ -108,7 +116,9 @@ export default function ShareCardClient({ id }) {
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
+      const sessions = getSessions()
       setSession(getSession(id))
+      setStreak(calculateStats(sessions).streak)
       setLoaded(true)
     })
 
@@ -124,20 +134,26 @@ export default function ShareCardClient({ id }) {
     image.crossOrigin = "anonymous"
     image.onload = () => {
       imageRef.current = image
-      drawShareImage(canvasRef.current, image, selectedDesign, session)
+      drawShareImageWithFonts(canvasRef.current, image, selectedDesign, session, streak)
     }
     image.src = imageUrl
 
     return () => {
       image.onload = null
     }
-  }, [imageUrl, selectedDesign, session])
+  }, [imageUrl, selectedDesign, session, streak])
 
   useEffect(() => {
     if (session && imageRef.current) {
-      drawShareImage(canvasRef.current, imageRef.current, selectedDesign, session)
+      drawShareImageWithFonts(
+        canvasRef.current,
+        imageRef.current,
+        selectedDesign,
+        session,
+        streak
+      )
     }
-  }, [selectedDesign, session])
+  }, [selectedDesign, session, streak])
 
   function handlePhotoChange(event) {
     const file = event.target.files?.[0]
@@ -218,7 +234,7 @@ export default function ShareCardClient({ id }) {
     <div className="relative min-h-[calc(100vh-180px)] pb-[36vh]">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
         <section className="grid gap-4 rounded-lg border border-white/10 bg-white/[0.04] p-4">
-          <div className="aspect-[4/5] overflow-hidden rounded-lg border border-white/10 bg-black/28">
+          <div className="aspect-[9/16] overflow-hidden rounded-lg border border-white/10 bg-black/28">
             {imageUrl ? (
               <canvas ref={canvasRef} className="h-full w-full object-contain" />
             ) : (
@@ -301,7 +317,7 @@ function DesignThumbnail({ design }) {
   const panelClass = getThumbnailPanelClass(design.position)
 
   return (
-    <span className="relative block aspect-[4/5] overflow-hidden rounded-md bg-[linear-gradient(145deg,rgba(255,255,255,0.22),rgba(255,255,255,0.04))]">
+    <span className="relative block aspect-[9/16] overflow-hidden rounded-md bg-[linear-gradient(145deg,rgba(255,255,255,0.22),rgba(255,255,255,0.04))]">
       <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_30%)]" />
       <span
         className={`absolute rounded-md border border-white/20 ${panelClass}`}
@@ -327,8 +343,8 @@ function DesignThumbnail({ design }) {
                 isLight ? "bg-black/22" : "bg-white/28"
               }`}
             />
-            <span className="mt-1 grid grid-cols-3 gap-1">
-              {[0, 1, 2].map((item) => (
+            <span className="mt-1 grid grid-cols-4 gap-1">
+              {[0, 1, 2, 3].map((item) => (
                 <span
                   key={item}
                   className={`h-2 rounded-full ${
@@ -357,13 +373,25 @@ function getThumbnailPanelClass(position) {
   return positions[position] ?? positions.bottom
 }
 
-function drawShareImage(canvas, image, design, session) {
+function drawShareImageWithFonts(canvas, image, design, session, streak) {
+  if (document.fonts?.load) {
+    document.fonts
+      .load(`400 58px ${SHARE_FONT}`)
+      .then(() => drawShareImage(canvas, image, design, session, streak))
+      .catch(() => drawShareImage(canvas, image, design, session, streak))
+    return
+  }
+
+  drawShareImage(canvas, image, design, session, streak)
+}
+
+function drawShareImage(canvas, image, design, session, streak) {
   if (!canvas) {
     return
   }
 
   const width = 1080
-  const height = 1350
+  const height = 1920
   const context = canvas.getContext("2d")
 
   canvas.width = width
@@ -383,76 +411,72 @@ function drawShareImage(canvas, image, design, session) {
     drawHeight
   )
 
-  drawDesign(context, design, session, width, height)
+  drawDesign(context, design, session, streak, width, height)
 }
 
-function drawDesign(context, design, session, width, height) {
+function drawDesign(context, design, session, streak, width, height) {
   const textColor = design.light ? "#111111" : "#f5f5f0"
   const mutedColor = design.light ? "rgba(17,17,17,0.62)" : "rgba(245,245,240,0.62)"
   const metrics = [
     ["duration", formatDuration(session.durationSeconds)],
-    ["focus", `${session.focus}%`],
+    ["focus", `${session.focus ?? 0}%`],
     ["target", `${session.targetFocus ?? 0}%`],
+    ["streak", `${streak}d`],
   ]
 
   context.save()
   context.fillStyle = design.tint
 
   if (design.position === "bottom") {
-    roundRect(context, 56, height - 338, width - 112, 258, 34)
+    const panel = { x: 56, y: height - 430, width: width - 112, height: 330 }
+    roundRect(context, panel.x, panel.y, panel.width, panel.height, 34)
     context.fill()
     drawHorizontalLockup(context, session, metrics, {
-      x: 96,
-      y: height - 276,
-      width: width - 192,
+      ...panel,
       textColor,
       mutedColor,
     })
   }
 
   if (design.position === "right") {
-    roundRect(context, width - 408, 72, 328, height - 144, 34)
+    const panel = { x: width - 424, y: 90, width: 344, height: height - 180 }
+    roundRect(context, panel.x, panel.y, panel.width, panel.height, 34)
     context.fill()
     drawVerticalLockup(context, session, metrics, {
-      x: width - 360,
-      y: 148,
-      width: 232,
+      ...panel,
       textColor,
       mutedColor,
     })
   }
 
   if (design.position === "top") {
-    roundRect(context, 56, 64, width - 112, 226, 34)
+    const panel = { x: 56, y: 72, width: width - 112, height: 330 }
+    roundRect(context, panel.x, panel.y, panel.width, panel.height, 34)
     context.fill()
     drawHorizontalLockup(context, session, metrics, {
-      x: 96,
-      y: 124,
-      width: width - 192,
+      ...panel,
       textColor,
       mutedColor,
     })
   }
 
   if (design.position === "corner") {
-    roundRect(context, width - 438, height - 438, 358, 358, 34)
+    const panel = { x: width - 464, y: height - 516, width: 384, height: 416 }
+    roundRect(context, panel.x, panel.y, panel.width, panel.height, 34)
     context.fill()
     drawCompactLockup(context, session, metrics, {
-      x: width - 386,
-      y: height - 368,
-      width: 254,
+      ...panel,
       textColor,
       mutedColor,
     })
   }
 
   if (design.position === "center") {
-    roundRect(context, 144, 472, width - 288, 360, 34)
+    const panel = { x: 144, y: 730, width: width - 288, height: 460 }
+    roundRect(context, panel.x, panel.y, panel.width, panel.height, 34)
     context.fill()
     drawCenteredLockup(context, session, metrics, {
-      x: 198,
-      y: 552,
-      width: width - 396,
+      ...panel,
       textColor,
       mutedColor,
     })
@@ -464,9 +488,10 @@ function drawDesign(context, design, session, width, height) {
     roundRect(context, 42, 42, width - 84, height - 84, 34)
     context.stroke()
     drawFrameLockup(context, session, metrics, {
-      x: 86,
-      y: height - 242,
-      width: width - 172,
+      x: 72,
+      y: height - 392,
+      width: width - 144,
+      height: 292,
       textColor,
       mutedColor,
     })
@@ -476,126 +501,150 @@ function drawDesign(context, design, session, width, height) {
 }
 
 function drawHorizontalLockup(context, session, metrics, options) {
-  const { x, y, width, textColor, mutedColor } = options
+  const { x, y, width, height, textColor, mutedColor } = options
+  const inset = 42
+  const contentX = x + inset
+  const contentY = y + 60
+  const contentWidth = width - inset * 2
 
   context.fillStyle = mutedColor
-  context.font = "600 24px Arial"
-  context.fillText("SESHN", x, y)
+  context.font = serifFont(22)
+  context.fillText("SESHN", contentX, contentY)
 
   context.fillStyle = textColor
-  context.font = "700 58px Arial"
-  fillSingleLine(context, session.title, x, y + 76, width * 0.58)
+  context.font = serifFont(54)
+  fillSingleLine(context, session.title, contentX, contentY + 72, contentWidth)
 
   context.fillStyle = mutedColor
-  context.font = "28px Arial"
-  fillSingleLine(context, session.subject, x, y + 124, width * 0.58)
+  context.font = serifFont(27)
+  fillSingleLine(context, session.subject, contentX, contentY + 120, contentWidth)
 
+  const metricY = y + height - 88
+  const columnWidth = contentWidth / metrics.length
   metrics.forEach(([label, value], index) => {
-    const metricX = x + width - 390 + index * 130
+    const metricX = contentX + columnWidth * index
     context.fillStyle = textColor
-    context.font = "700 34px Arial"
-    context.fillText(String(value), metricX, y + 190)
+    context.font = serifFont(34)
+    context.fillText(String(value), metricX, metricY)
     context.fillStyle = mutedColor
-    context.font = "22px Arial"
-    context.fillText(label, metricX, y + 225)
+    context.font = serifFont(18)
+    context.fillText(label, metricX, metricY + 30)
   })
 }
 
 function drawVerticalLockup(context, session, metrics, options) {
-  const { x, y, width, textColor, mutedColor } = options
+  const { x, y, width, height, textColor, mutedColor } = options
+  const contentX = x + 42
+  const contentY = y + 70
+  const contentWidth = width - 84
 
   context.fillStyle = mutedColor
-  context.font = "600 24px Arial"
-  context.fillText("SESHN", x, y)
+  context.font = serifFont(22)
+  context.fillText("SESHN", contentX, contentY)
 
   context.fillStyle = textColor
-  context.font = "700 48px Arial"
-  wrapText(context, session.title, x, y + 76, width, 54, 2)
+  context.font = serifFont(48)
+  wrapText(context, session.title, contentX, contentY + 76, contentWidth, 52, 3)
 
   context.fillStyle = mutedColor
-  context.font = "26px Arial"
-  wrapText(context, session.subject, x, y + 196, width, 32, 2)
+  context.font = serifFont(26)
+  wrapText(context, session.subject, contentX, contentY + 242, contentWidth, 32, 2)
 
+  const metricStartY = y + height - 530
   metrics.forEach(([label, value], index) => {
-    const metricY = y + 318 + index * 118
+    const metricY = metricStartY + index * 116
     context.fillStyle = textColor
-    context.font = "700 42px Arial"
-    context.fillText(String(value), x, metricY)
+    context.font = serifFont(42)
+    context.fillText(String(value), contentX, metricY)
     context.fillStyle = mutedColor
-    context.font = "22px Arial"
-    context.fillText(label, x, metricY + 34)
+    context.font = serifFont(20)
+    context.fillText(label, contentX, metricY + 34)
   })
 }
 
 function drawCompactLockup(context, session, metrics, options) {
-  const { x, y, width, textColor, mutedColor } = options
+  const { x, y, width, height, textColor, mutedColor } = options
+  const inset = 34
+  const contentX = x + inset
+  const contentY = y + 58
+  const contentWidth = width - inset * 2
 
   context.fillStyle = mutedColor
-  context.font = "600 22px Arial"
-  context.fillText("SESHN", x, y)
+  context.font = serifFont(20)
+  context.fillText("SESHN", contentX, contentY)
 
   context.fillStyle = textColor
-  context.font = "700 42px Arial"
-  wrapText(context, session.title, x, y + 68, width, 46, 2)
+  context.font = serifFont(42)
+  wrapText(context, session.title, contentX, contentY + 64, contentWidth, 46, 2)
 
   context.fillStyle = mutedColor
-  context.font = "24px Arial"
-  fillSingleLine(context, session.subject, x, y + 166, width)
+  context.font = serifFont(23)
+  fillSingleLine(context, session.subject, contentX, contentY + 160, contentWidth)
 
-  metrics.slice(0, 2).forEach(([label, value], index) => {
-    const metricX = x + index * 126
+  const metricY = y + height - 112
+  metrics.forEach(([label, value], index) => {
+    const metricX = contentX + (index % 2) * 148
+    const rowY = metricY + Math.floor(index / 2) * 76
     context.fillStyle = textColor
-    context.font = "700 34px Arial"
-    context.fillText(String(value), metricX, y + 242)
+    context.font = serifFont(30)
+    context.fillText(String(value), metricX, rowY)
     context.fillStyle = mutedColor
-    context.font = "20px Arial"
-    context.fillText(label, metricX, y + 274)
+    context.font = serifFont(17)
+    context.fillText(label, metricX, rowY + 26)
   })
 }
 
 function drawCenteredLockup(context, session, metrics, options) {
-  const { x, y, width, textColor, mutedColor } = options
+  const { x, y, width, height, textColor, mutedColor } = options
   const centerX = x + width / 2
+  const contentWidth = width - 96
 
   context.textAlign = "center"
   context.fillStyle = mutedColor
-  context.font = "600 24px Arial"
-  context.fillText("SESHN", centerX, y)
+  context.font = serifFont(22)
+  context.fillText("SESHN", centerX, y + 64)
 
   context.fillStyle = textColor
-  context.font = "700 58px Arial"
-  wrapText(context, session.title, x, y + 78, width, 62, 2, "center")
+  context.font = serifFont(58)
+  wrapText(context, session.title, x + 48, y + 146, contentWidth, 62, 2, "center")
 
   context.fillStyle = mutedColor
-  context.font = "28px Arial"
-  context.fillText(session.subject, centerX, y + 204)
+  context.font = serifFont(28)
+  context.fillText(session.subject, centerX, y + 276)
 
+  const metricY = y + height - 88
+  const columnWidth = contentWidth / metrics.length
   metrics.forEach(([label, value], index) => {
-    const metricX = x + width * (0.18 + index * 0.32)
+    const metricX = x + 48 + columnWidth * index + columnWidth / 2
     context.fillStyle = textColor
-    context.font = "700 34px Arial"
-    context.fillText(String(value), metricX, y + 282)
+    context.font = serifFont(34)
+    context.fillText(String(value), metricX, metricY)
     context.fillStyle = mutedColor
-    context.font = "22px Arial"
-    context.fillText(label, metricX, y + 318)
+    context.font = serifFont(18)
+    context.fillText(label, metricX, metricY + 30)
   })
   context.textAlign = "left"
 }
 
 function drawFrameLockup(context, session, metrics, options) {
-  const { x, y, width, textColor, mutedColor } = options
+  const { x, y, width, height, textColor, mutedColor } = options
 
   context.fillStyle = "rgba(8,8,8,0.52)"
-  roundRect(context, x - 24, y - 64, width * 0.72, 210, 28)
+  roundRect(context, x, y, width, height, 28)
   context.fill()
 
   drawHorizontalLockup(context, session, metrics, {
     x,
     y,
-    width: width * 0.72,
+    width,
+    height,
     textColor,
     mutedColor,
   })
+}
+
+function serifFont(size) {
+  return `400 ${size}px ${SHARE_FONT}`
 }
 
 function fillSingleLine(context, text, x, y, maxWidth) {

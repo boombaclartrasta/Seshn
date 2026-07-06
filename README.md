@@ -33,6 +33,30 @@ visibility can act as a fallback proxy for phone-on/app-active time. Most phone
 browsers require HTTPS for motion sensors, so focus tracking may stay disabled
 when testing over a local `http://192.168...` address.
 
+## Protect The Prototype
+
+The landing page at `/` is public. Prototype routes are gated by `src/proxy.js`:
+
+- `/signin`
+- `/dashboard`
+- `/sessions/*`
+- `/share/*`
+
+Set this environment variable in Vercel:
+
+```text
+PROTOTYPE_ACCESS_TOKEN=replace-with-a-long-random-secret
+```
+
+Then open the prototype once with:
+
+```text
+https://YOUR_DOMAIN/dashboard?access=replace-with-a-long-random-secret
+```
+
+That sets a 30-day private cookie on your device. Public visitors who open
+prototype routes without the token are redirected to `/`.
+
 ## Test On A Phone
 
 Run Next on your network:

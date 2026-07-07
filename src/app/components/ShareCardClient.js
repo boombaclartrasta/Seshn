@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import {
   calculateStats,
@@ -120,6 +121,7 @@ const DESIGNS = [
 ]
 
 export default function ShareCardClient({ id }) {
+  const router = useRouter()
   const canvasRef = useRef(null)
   const imageRef = useRef(null)
   const panelRef = useRef(null)
@@ -462,6 +464,7 @@ export default function ShareCardClient({ id }) {
             title: "SESHN study session",
           })
           setSaving(false)
+          router.replace("/dashboard")
           return
         } catch {
           // Fall back to download below.
@@ -475,6 +478,7 @@ export default function ShareCardClient({ id }) {
       link.click()
       window.URL.revokeObjectURL(url)
       setSaving(false)
+      router.replace("/dashboard")
     }, "image/png")
   }
 

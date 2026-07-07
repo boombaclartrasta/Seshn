@@ -9,7 +9,7 @@ export default async function SharePage({ params }) {
   const { id } = await params
 
   return (
-    <AppShell title="share card" eyebrow="progress snapshot">
+    <AppShell fullBleed>
       <ShareCardClient id={id} />
     </AppShell>
   )

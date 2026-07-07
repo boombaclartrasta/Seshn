@@ -5,6 +5,7 @@ import {
   calculateFocusScore,
   formatDuration,
   formatTrackedDuration,
+  getProfile,
   saveSession,
 } from "@/lib/seshnStore"
 
@@ -23,8 +24,24 @@ export default function SessionWorkspace() {
   const [endedAt, setEndedAt] = useState(null)
   const [title, setTitle] = useState("focused study")
   const [subject, setSubject] = useState("Mathematics")
+  const [subjects, setSubjects] = useState([])
   const [topics, setTopics] = useState("integration by parts")
   const [notes, setNotes] = useState("")
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const profileSubjects = getProfile()?.subjects
+      const nextSubjects = Array.isArray(profileSubjects) ? profileSubjects : []
+
+      setSubjects(nextSubjects)
+
+      if (nextSubjects[0]) {
+        setSubject(nextSubjects[0])
+      }
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
 
   useEffect(() => {
     if (stage !== "recording") {
@@ -310,7 +327,11 @@ export default function SessionWorkspace() {
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label="session title" value={title} onChange={setTitle} />
-          <TextField label="subject" value={subject} onChange={setSubject} />
+          <SubjectField
+            subjects={subjects}
+            value={subject}
+            onChange={setSubject}
+          />
         </div>
         <TextField
           label="topics"
@@ -376,6 +397,29 @@ function TextField({ label, value, onChange, hint }) {
         className="rounded-md border border-white/10 bg-black/24 px-3 py-3 text-base text-white outline-none placeholder:text-white/24 focus:border-white/32"
       />
       {hint ? <span className="text-xs text-white/36">{hint}</span> : null}
+    </label>
+  )
+}
+
+function SubjectField({ subjects, value, onChange }) {
+  if (subjects.length === 0) {
+    return <TextField label="subject" value={value} onChange={onChange} />
+  }
+
+  return (
+    <label className="grid gap-2 text-sm text-white/64">
+      subject
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-md border border-white/10 bg-black/24 px-3 py-3 text-base text-white outline-none focus:border-white/32"
+      >
+        {subjects.map((subject) => (
+          <option key={subject} value={subject} className="bg-[#101010]">
+            {subject}
+          </option>
+        ))}
+      </select>
     </label>
   )
 }

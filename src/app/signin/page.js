@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function SignInPage() {
   return (
-    <AppShell title="set up your profile" eyebrow="prototype auth">
+    <AppShell title="sign in" eyebrow="profile setup" showNav={false}>
       <SignInClient />
     </AppShell>
   )

@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function DashboardPage() {
   return (
-    <AppShell title="dashboard" eyebrow="study tracking">
+    <AppShell showHeader={false}>
       <DashboardClient />
     </AppShell>
   )

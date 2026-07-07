@@ -3,7 +3,7 @@ export default function manifest() {
     name: "SESHN",
     short_name: "SESHN",
     description: "Track study sessions, focus, streaks, and share progress.",
-    start_url: "/dashboard",
+    start_url: "/signin",
     display: "standalone",
     background_color: "#101010",
     theme_color: "#101010",
